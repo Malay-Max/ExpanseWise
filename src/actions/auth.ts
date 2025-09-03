@@ -1,7 +1,7 @@
 'use server';
 
 import { adminAuth } from '@/lib/firebase-admin';
-import { auth } from '@/lib/firebase';
+import { auth, app as firebaseApp } from '@/lib/firebase'; // Ensure firebaseApp is initialized
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -47,6 +47,7 @@ export async function signup(values: z.infer<typeof loginSchema>) {
   const { email, password } = validatedFields.data;
 
   try {
+    // The firebaseApp import ensures initialization has run
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const idToken = await userCredential.user.getIdToken();
     
