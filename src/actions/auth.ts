@@ -52,39 +52,20 @@ export async function signup(values: z.infer<typeof loginSchema>) {
   const { email, password } = validatedFields.data;
 
   try {
-    // Use Admin SDK to create user, which is more reliable on the server
-    const userRecord = await adminAuth.createUser({
+    // 1. Create the user with the Admin SDK
+    await adminAuth.createUser({
       email,
       password,
     });
 
-    // Create a custom token to then create a session cookie
-    const customToken = await adminAuth.createCustomToken(userRecord.uid);
-    
-    // Note: We don't sign in with the custom token here on the server.
-    // We will create the session cookie directly. For a more seamless initial login,
-    // the client would need to sign in with the custom token, but for this
-    // server-action driven flow, creating the cookie is sufficient.
-    const idToken = customToken; // For session cookie, we can use the custom token as a proxy for the idToken's claims
+    // 2. Sign the user in with the Client SDK to get an ID token
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const idToken = await userCredential.user.getIdToken();
 
+    // 3. Create the session cookie with the ID token
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    
-    // To create a session cookie, we need an ID token, not a custom token.
-    // The proper flow is: client receives custom token, signs in, gets ID token.
-    // For a pure server-side flow, we can't get an ID token easily.
-    // Let's create the session cookie on login instead, and redirect user there.
-    // So for now, we just create the user.
-    // A better user experience would be to automatically log them in.
-
-    // Let's adjust the login function to handle this better.
-    // For now, we will just create the user and they can log in after.
-    
-    // A simplified approach for now: Create user and have them log in.
-    // For auto-login, a more complex flow is needed.
-    // Let's create the session cookie right away.
-     const sessionCookie = await adminAuth.createSessionCookie(customToken, { expiresIn });
-     cookies().set('firebase-session-token', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    cookies().set('firebase-session-token', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production' });
 
     return { success: 'Signed up successfully! You are now logged in.' };
   } catch (error: any) {
