@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can only read/write their own expense documents
+    match /expenses/{expenseId} {
+      allow read, create, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    // Users can read all of their expenses
+    match /expenses/{expenseId} {
+      allow list: if request.auth != null && request.auth.uid == request.query.where.find(p => p.field == "userId").value;
+    }
+  }
+}
