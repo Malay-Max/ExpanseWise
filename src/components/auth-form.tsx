@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -32,6 +33,7 @@ type AuthFormProps = {
 
 export function AuthForm({ mode }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -45,23 +47,43 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const action = mode === 'login' ? login : signup;
-    const result = await action(values);
+    setIsSuccess(false);
 
-    if (result.error) {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: result.error,
-      });
-      setIsLoading(false);
+    if (mode === 'signup') {
+      const result = await signup(values);
+      if (result.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Signup Error',
+          description: result.error,
+        });
+      } else {
+        setIsSuccess(true);
+        toast({
+          title: 'Signup Successful',
+          description: result.success,
+        });
+        form.reset();
+      }
     } else {
-      toast({
-        title: mode === 'login' ? 'Login Successful' : 'Signup Successful',
-        description: 'Redirecting to your dashboard...',
-      });
-      router.push('/dashboard');
+      const result = await login(values);
+      if (result.error) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Error',
+          description: result.error,
+        });
+      } else {
+        toast({
+          title: 'Login Successful',
+          description: 'Redirecting to your dashboard...',
+        });
+        router.push('/dashboard');
+        return; // prevent loading state from being reset
+      }
     }
+
+    setIsLoading(false);
   }
 
   const title = mode === 'login' ? 'Welcome Back!' : 'Create an Account';
@@ -77,47 +99,60 @@ export function AuthForm({ mode }: AuthFormProps) {
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="name@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {buttonText}
+        {isSuccess && mode === 'signup' ? (
+          <div className="text-center p-4 bg-green-100/50 dark:bg-green-900/20 text-green-800 dark:text-green-200 rounded-md">
+            <p className="font-bold">Account Created!</p>
+            <p className="text-sm">You can now log in with your new credentials.</p>
+            <Button variant="link" asChild className="mt-2">
+              <Link href="/login">Go to Login</Link>
             </Button>
-          </form>
-        </Form>
-        <div className="mt-6 text-center text-sm">
-          {linkText}{' '}
-          <Link href={linkHref} className="underline text-primary hover:text-primary/80">
-            {mode === 'login' ? 'Sign up' : 'Log in'}
-          </Link>
-        </div>
+          </div>
+        ) : (
+          <>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="name@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {buttonText}
+                </Button>
+              </form>
+            </Form>
+            <div className="mt-6 text-center text-sm">
+              {linkText}{' '}
+              <Link href={linkHref} className="underline text-primary hover:text-primary/80">
+                {mode === 'login' ? 'Sign up' : 'Log in'}
+              </Link>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
 }
+

@@ -24,8 +24,6 @@ export async function login(values: z.infer<typeof loginSchema>) {
   const { email, password } = validatedFields.data;
 
   try {
-    // Client SDK for sign-in is okay here as it's a common pattern,
-    // but signup needs to be admin-only for reliability in server actions.
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const idToken = await userCredential.user.getIdToken();
     
@@ -52,22 +50,11 @@ export async function signup(values: z.infer<typeof loginSchema>) {
   const { email, password } = validatedFields.data;
 
   try {
-    // 1. Create the user with the Admin SDK
     await adminAuth.createUser({
       email,
       password,
     });
-
-    // 2. Sign the user in with the Client SDK to get an ID token
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const idToken = await userCredential.user.getIdToken();
-
-    // 3. Create the session cookie with the ID token
-    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-    cookies().set('firebase-session-token', sessionCookie, { maxAge: expiresIn, httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-
-    return { success: 'Signed up successfully! You are now logged in.' };
+    return { success: 'Account created! Please log in.' };
   } catch (error: any) {
     if (error.code === 'auth/email-already-exists') {
       return { error: 'An account with this email already exists.' };
@@ -75,6 +62,7 @@ export async function signup(values: z.infer<typeof loginSchema>) {
      return { error: 'An unexpected error occurred during signup. Please try again.' };
   }
 }
+
 
 export async function logout() {
   try {
