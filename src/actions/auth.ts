@@ -1,7 +1,7 @@
 'use server';
 
-import { auth } from '@/lib/firebase';
 import { adminAuth } from '@/lib/firebase-admin';
+import { auth } from '@/lib/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
