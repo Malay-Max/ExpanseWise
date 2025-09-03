@@ -7,8 +7,12 @@ let adminAuth: Auth;
 
 if (!admin.apps.length) {
   try {
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (!serviceAccountKey) {
+        throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.');
+    }
     admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
+      credential: admin.credential.cert(JSON.parse(serviceAccountKey)),
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     });
   } catch (error: any) {
