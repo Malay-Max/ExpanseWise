@@ -34,7 +34,8 @@ function initializeAdminApp() {
                 credential: admin.credential.cert(parsedKey),
                 projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
             });
-        } catch (jsonError: any) {
+        } catch (jsonError: any)
+{
             console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON.', jsonError);
             throw new Error('Failed to initialize Firebase Admin SDK. The FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not a valid JSON object.');
         }
