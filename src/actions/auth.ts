@@ -33,6 +33,7 @@ export async function login(values: z.infer<typeof loginSchema>) {
 
     return { success: 'Logged in successfully!' };
   } catch (error: any) {
+    console.error("Login Error:", error);
     // Provide a more generic error to avoid leaking implementation details
     if (error.code && (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential')) {
         return { error: 'Invalid email or password.' };
@@ -56,6 +57,7 @@ export async function signup(values: z.infer<typeof loginSchema>) {
     });
     return { success: 'Account created! Please log in.' };
   } catch (error: any) {
+    console.error("Signup Error:", error);
     if (error.code === 'auth/email-already-exists') {
       return { error: 'An account with this email already exists.' };
     }
@@ -70,7 +72,7 @@ export async function logout() {
     await firebaseSignOut(auth);
     return { success: 'Logged out successfully' };
   } catch (error: any) {
+    console.error("Logout Error:", error);
     return { error: error.message };
   }
 }
-
