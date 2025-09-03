@@ -16,11 +16,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { login, signup } from '@/actions/auth';
+import { signup, createSession } from '@/actions/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -65,21 +68,46 @@ export function AuthForm({ mode }: AuthFormProps) {
         });
         form.reset();
       }
-    } else {
-      const result = await login(values);
-      if (result.error) {
-        toast({
-          variant: 'destructive',
-          title: 'Login Error',
-          description: result.error,
-        });
-      } else {
-        toast({
-          title: 'Login Successful',
-          description: 'Redirecting to your dashboard...',
-        });
-        router.push('/dashboard');
-        return; // prevent loading state from being reset
+    } else { // Login mode
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+        const idToken = await userCredential.user.getIdToken();
+        
+        const sessionResult = await createSession(idToken);
+        
+        if (sessionResult.error) {
+           toast({
+            variant: 'destructive',
+            title: 'Login Error',
+            description: sessionResult.error,
+          });
+        } else {
+           toast({
+            title: 'Login Successful',
+            description: 'Redirecting to your dashboard...',
+          });
+          router.push('/dashboard');
+          return; // prevent loading state from being reset
+        }
+      } catch (error: any) {
+         let errorMessage = 'An unexpected error occurred. Please try again.';
+          if (error.code) {
+              switch (error.code) {
+                  case 'auth/user-not-found':
+                  case 'auth/wrong-password':
+                  case 'auth/invalid-credential':
+                      errorMessage = 'Invalid email or password.';
+                      break;
+                  default:
+                      errorMessage = error.message;
+                      break;
+              }
+          }
+          toast({
+              variant: 'destructive',
+              title: 'Login Error',
+              description: errorMessage,
+          });
       }
     }
 
@@ -155,4 +183,3 @@ export function AuthForm({ mode }: AuthFormProps) {
     </Card>
   );
 }
-
