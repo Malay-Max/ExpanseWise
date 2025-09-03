@@ -51,16 +51,20 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setIsSuccess(false);
+    console.log(`[AuthForm] Starting submission for mode: ${mode}`);
 
     if (mode === 'signup') {
+      console.log('[AuthForm] Calling signup server action...');
       const result = await signup(values);
-      if (result.error) {
+       if (result.error) {
+         console.error('[AuthForm] Signup failed:', result.error);
         toast({
           variant: 'destructive',
           title: 'Signup Error',
           description: result.error,
         });
       } else {
+        console.log('[AuthForm] Signup successful:', result.success);
         setIsSuccess(true);
         toast({
           title: 'Signup Successful',
@@ -70,10 +74,16 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
     } else { // Login mode
       try {
+        console.log('[AuthForm] Attempting client-side signInWithEmailAndPassword...');
         const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-        const idToken = await userCredential.user.getIdToken();
+        console.log('[AuthForm] Client-side sign-in successful. User:', userCredential.user.uid);
         
+        console.log('[AuthForm] Getting ID token...');
+        const idToken = await userCredential.user.getIdToken();
+        console.log('[AuthForm] Got ID token. Calling createSession server action.');
+
         const sessionResult = await createSession(idToken);
+        console.log('[AuthForm] createSession response:', sessionResult);
         
         if (sessionResult.error) {
            toast({
@@ -90,6 +100,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           return; // prevent loading state from being reset
         }
       } catch (error: any) {
+         console.error('[AuthForm] Client-side login error:', error);
          let errorMessage = 'An unexpected error occurred. Please try again.';
           if (error.code) {
               switch (error.code) {
@@ -99,7 +110,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                       errorMessage = 'Invalid email or password.';
                       break;
                   default:
-                      errorMessage = error.message;
+                      errorMessage = `Authentication error: ${error.message}`;
                       break;
               }
           }
