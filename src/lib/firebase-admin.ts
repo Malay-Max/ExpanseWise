@@ -15,30 +15,14 @@ function initializeAdminApp() {
     }
 
     try {
-        // Recommended for environments with Application Default Credentials (e.g., App Hosting)
+        // This is the recommended way for server environments like App Hosting
         admin.initializeApp({
             credential: admin.credential.applicationDefault(),
             projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
         });
     } catch (error: any) {
-        console.warn('Application Default Credentials failed. Falling back to service account key.', error.message);
-        
-        const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-        if (!serviceAccountKey) {
-            throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY is not set. Required for fallback initialization.');
-        }
-        
-        try {
-            const parsedKey = JSON.parse(serviceAccountKey);
-            admin.initializeApp({
-                credential: admin.credential.cert(parsedKey),
-                projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            });
-        } catch (jsonError: any)
-{
-            console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY as JSON.', jsonError);
-            throw new Error('Failed to initialize Firebase Admin SDK. The FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not a valid JSON object.');
-        }
+        console.error('Firebase admin initialization error', error);
+        throw new Error('Failed to initialize Firebase Admin SDK. Ensure your service account credentials are set up correctly in your environment.');
     }
 
     return {
