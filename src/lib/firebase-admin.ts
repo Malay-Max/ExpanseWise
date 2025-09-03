@@ -1,45 +1,40 @@
 import * as admin from 'firebase-admin';
-import type {Auth} from 'firebase-admin/auth';
-import type {Firestore} from 'firebase-admin/firestore';
+import type { Auth } from 'firebase-admin/auth';
+import type { Firestore } from 'firebase-admin/firestore';
 
-const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+let adminDb: Firestore;
+let adminAuth: Auth;
 
-const initializeAdminApp = (): {
-  adminDb: Firestore;
-  adminAuth: Auth;
-} => {
-  if (admin.apps.length > 0) {
-    return {
-      adminDb: admin.firestore(),
-      adminAuth: admin.auth(),
-    };
-  }
-
-  if (!privateKey || !clientEmail) {
-    throw new Error('Firebase Admin SDK environment variables are not set.');
-  }
-
+if (!admin.apps.length) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        clientEmail: clientEmail,
-        privateKey: privateKey.replace(/\\n/g, '\n'),
-      }),
+      credential: admin.credential.applicationDefault(),
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     });
   } catch (error: any) {
     console.error('Firebase admin initialization error', error);
-    throw new Error('Failed to initialize Firebase Admin SDK: ' + error.message);
+    // Fallback for local development if GOOGLE_APPLICATION_CREDENTIALS is not set
+    // and we have the manual env vars.
+    if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+        try {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+                }),
+            });
+        } catch (innerError: any) {
+            console.error('Fallback Firebase admin initialization error', innerError);
+            throw new Error('Failed to initialize Firebase Admin SDK: ' + innerError.message);
+        }
+    } else {
+         throw new Error('Failed to initialize Firebase Admin SDK: ' + error.message);
+    }
   }
+}
 
-  return {
-    adminDb: admin.firestore(),
-    adminAuth: admin.auth(),
-  };
-};
+adminDb = admin.firestore();
+adminAuth = admin.auth();
 
-// Initialize and export admin services
-const {adminDb, adminAuth} = initializeAdminApp();
-
-export {adminDb, adminAuth};
+export { adminDb, adminAuth };
